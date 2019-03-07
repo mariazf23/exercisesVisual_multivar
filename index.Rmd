@@ -1,0 +1,602 @@
+<br> 
+<center>
+## Visual Analytics for Policy and Management: Exercise 3
+
+### Multivariate Case 
+
+### by Maria Zepeda Flores
+
+
+</center>
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+Data to be used: 
+
+```{r, eval=TRUE}
+library(openxlsx)
+link="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndexAll.xlsx"
+
+safe=read.xlsx(link)
+```
+
+```{r, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+names(safe)
+```
+
+```{r, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+# all the questions with this: "H_In_"
+grep("H_In_", colnames(safe) ) # ^ means starts with
+```
+
+```{r, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+# the 'head' of only those:
+positionsIN=grep("H_In_", colnames(safe) )
+head(safe[,c(1,positionsIN)])
+
+```
+
+
+```{r, echo=FALSE,eval=FALSE, error=FALSE, message=FALSE}
+pairs(safe[,c(positionsIN)])
+```
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(GGally) 
+```
+
+
+```{r, echo=FALSE, eval=FALSE, error=FALSE, message=FALSE}
+# may need to install
+
+ggcorr(safe[,-1], # all but the first column
+       hjust = 0.9,# distance to plot (diagonal)
+       size=1, # font size
+       layout.exp=4, # width so that variable names are shown
+       low = 'red',high = 'blue') # color scale
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+base= ggcorr(safe[,-1],size=1,layout.exp=4,hjust=0.9,
+             nbreaks = 3, # 3 intervals 
+             palette = "PuOr")
+
+base + guides(fill=guide_legend("some title")) # if you need a title for legend
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results='hide'}
+library(reshape)
+safeA=melt(safe,
+           id.vars = 'city') # the unit of analysis
+head(safeA)
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+
+base = ggplot(data = safeA, aes(x = variable,
+                                y =city)) 
+
+heat1= base +  geom_tile(aes(fill = value)) 
+heat1
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+#inverse color -1
+heat2 = heat1 + scale_fill_distiller(palette = "RdYlGn",direction = 1)  
+heat2
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+heat2 + theme(axis.text.x = element_text(angle = 90, 
+                                         hjust = 1,
+                                         size = 4),
+              axis.text.y = element_text(size = 4))
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+# change in REORDER
+base= ggplot(data = safeA, aes(x = reorder(variable, 
+                                           value, median, order=TRUE),
+                               y =reorder(city,
+                                          value, median, order=TRUE)))
+# THIS IS THE SAME
+base + geom_tile(aes(fill = value)) + 
+    scale_fill_distiller(palette = "RdYlGn",direction = 1) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,size = 4),
+              axis.text.y = element_text(size = 4))
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results='hide'}
+library(openxlsx)
+link2="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndex.xlsx"
+
+safe2=read.xlsx(link2)
+head(safe2)
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results='hide'}
+safe2A=melt(safe2,id.vars = 'city')
+head(safe2A)
+```
+
+
+```{r, fig.width=20, fig.height=15, echo=FALSE, eval=FALSE}
+base  = ggplot(safe2A, aes(x = variable, y = value, group = city))
+
+plot1 = base + geom_polygon(fill = 'gray',col='orange') + coord_polar()
+
+plot2 = plot1 + facet_wrap(~city,# one plot per city
+                           ncol = 10) # ten plot per row
+plot2
+```
+
+
+```{r, fig.width=15, fig.height=25, echo=FALSE, eval=FALSE}
+
+plot2 = plot1 + facet_wrap(~reorder(city,value, median, order=TRUE),ncol = 7)
+
+
+plot3 = plot2 + theme(axis.text.x = element_text(size = 8)) 
+plot3 
+```
+
+
+```{r, fig.width=15, fig.height=25, eval=FALSE, echo=FALSE}
+plot3 = plot2 + theme(axis.text.x = element_text(size = 8),
+                legend.position="none",
+                strip.text = element_text(size = 20)) #here!!!
+plot3
+```
+
+```{r, fig.width=15, fig.height=25, echo=FALSE, eval=FALSE}
+
+### arguments
+brdBkgnGrid=element_rect(fill = "white",colour = "red",
+             size = 3,linetype = "dashed")
+
+lineGrid=element_line(size = 3,linetype = 'solid',colour = "blue")
+
+### more customization
+plot3+ theme(panel.background = brdBkgnGrid,
+             panel.grid.major = lineGrid)
+                        
+```
+
+```{r, eval=TRUE, echo=FALSE, error=FALSE, message=FALSE, results='hide'}
+# copy data
+safe2x=safe2
+head(safe2x)
+```
+
+```{r, eval=TRUE, echo=FALSE, results='hide', error=FALSE, message=FALSE}
+# get minimun value by row
+safe2x$min=apply(safe2x[,c(2:5)],1,min)
+
+# turn this min values into a ranking
+safe2x$min=rank(safe2x$min,ties.method ='first' )
+
+# order city by ranking
+cityRk=as.factor(safe2x[order(safe2x$min),]$city)
+
+# turn city into ordered factor
+safe2x$city=factor(safe2x$city,
+                   levels= cityRk,
+                   labels = cityRk,
+                   ordered = T)
+
+# delete column with ranks
+safe2x$min=NULL
+```
+
+
+```{r, eval=TRUE, echo=FALSE, error=FALSE, message=FALSE, results='hide'}
+head(safe2x)
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide', error=FALSE, message=FALSE, results='hide'}
+str(safe2x)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+library(gdtools)
+library(ggiraph)
+library(ggiraphExtra)
+```
+
+
+```{r, fig.width=15, fig.height=10, echo=FALSE, eval=FALSE}
+base = ggRadar(safe2x,aes(group='city'),legend.position="none") 
+
+plot1 = base + facet_wrap(~city,ncol = 10) 
+
+plot1 + geom_polygon(fill = 'white',col='orange')
+```
+
+
+```{r, echo=FALSE, eval=FALSE, results='hide'}
+some=c("Manila","Lima", "Washington DC","Tokyo")
+
+subSafe=safe2x[safe2x$city %in% some,]
+
+base = ggRadar(subSafe,aes(group='city'),
+               alpha = 0,legend.position="top") 
+
+base #+  theme(legend.title=element_blank())
+
+
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide', error=FALSE, warning=FALSE}
+library(psych)
+```
+
+
+```{r, echo=FALSE, results = 'hide'}
+#copy
+safeCopy=safe
+resultPCA=principal(safeCopy[,-1],
+                nfactors = 1,
+                scores=T,
+                normalize=T)
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide'}
+resultPCA$Vaccounted[[2]]
+```
+
+
+
+```{r, eval=TRUE, echo=FALSE}
+safeCopy$indexSafe=as.vector(factor.scores(safeCopy[,-1],resultPCA)$scores)
+```
+
+
+```{r, eval=TRUE, results = 'hide', echo=FALSE, error=FALSE, message=FALSE}
+head(safeCopy[,c(49:51)]) # just the last three columns
+```
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+# pysch has its own 'rescale'
+safeCopy$indexSafe=scales::rescale(safeCopy$indexSafe, to = c(1, 100)) 
+
+# you get:
+head(safeCopy[,c(49:51)]) 
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+safeCopy$RankSafe=rank(-safeCopy$indexSafe)
+head(safeCopy[,c(51:52)]) 
+```
+
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide'}
+
+# IN/OUT
+positionsIN=grep("_In_", colnames(safe) )
+positionsOUT=grep("_Out_", colnames(safe) )
+
+#
+safeIN=safe[,c(1,positionsIN)]
+safeOUT=safe[,c(1,positionsOUT)]
+```
+
+
+```{r, eval=TRUE,echo=FALSE}
+### IN
+resultIN=principal(safeIN[,-1],
+                   nfactors = 1,
+                   scores=T,
+                   normalize=T)
+
+safeIN$indexSafeIN=as.vector(factor.scores(safeIN[,-1],resultIN)$scores)
+safeIN$indexSafeIN=scales::rescale(safeIN$indexSafeIN, 
+                                   to = c(1, 100)) 
+safeIN$RankSafeIN=rank(-safeIN$indexSafeIN)
+
+### OUT
+resultOUT=principal(safeOUT[,-1],
+                    nfactors = 1,
+                    scores=T,
+                    normalize=T)
+
+safeOUT$indexSafeOUT=as.vector(factor.scores(safeOUT[,-1],resultOUT)$scores)
+safeOUT$indexSafeOUT=scales::rescale(safeOUT$indexSafeOUT, 
+                                     to = c(1, 100)) 
+safeOUT$RankSafeOUT=rank(-safeOUT$indexSafeOUT)
+```
+
+## Descriptive plots
+
+```{r, eval=TRUE, echo=FALSE, results = 'hide'}
+safeIO=merge(safeIN,safeOUT)
+```
+
+#### Plot 1:
+
+```{r, eval=TRUE, echo=FALSE}
+ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT, label=city)) +
+  geom_point(colour="green") +geom_text(size=2) 
+```
+
+#### Plot 2:
+
+```{r, eval=TRUE, echo=FALSE}
+library(ggrepel)
+set.seed(123)
+
+base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT,
+                           label=city))
+plot1 = base + geom_point(color = "red",na.rm=TRUE) #removing missing vals
+
+plot2 = plot1 + geom_text_repel(na.rm=TRUE) 
+
+plot2
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+plot2 +  xlim(0, 50)+ylim(0,50)
+```
+
+```{r, echo=FALSE, results = 'hide'}
+distanceAmong <- dist(safe[,-1]) # euclidean distances between the rows
+result <- cmdscale(distanceAmong,eig=TRUE, k=2) # k is the number of dim
+
+# data frame prep:
+dim1 <- result$points[,1]
+dim2 <- result$points[,2]
+
+coordinates=data.frame(dim1,dim2,city=safe$city)
+```
+```{r, echo=FALSE, eval=FALSE}
+base= ggplot(coordinates,aes(x=dim1, y=dim2,label=city)) 
+base + geom_text(size=2)
+```
+
+
+```{r, echo=FALSE, results = 'hide'}
+library(cluster)
+set.seed(123)
+
+# computing clusters
+result <- kmeans(safeIO[,-c(1,25,26,53,54)], # not using composites just created
+                 centers = 3) # how many clusters
+# adding the cluster
+safeIO$cluster=as.factor(result$cluster)
+```
+
+#### Final Plot:
+
+```{r, eval=TRUE}
+base <- ggplot(safeIO, aes(x= indexSafeIN, y= indexSafeOUT,
+                           label=city,
+                           color = cluster)) # cluster!!
+plot1 = base + geom_point(na.rm=TRUE) 
+
+plot1 + geom_text_repel(na.rm=TRUE,size=2) + theme_bw() + labs(title="Examining Safety Index Inputs and Outputs", subtitle="What cities rank similarly to each other?", x="Safety Index Inputs", y="Safety Index Outputs", caption = "Source: Safe Cities Index 2017", legend = "Cluster") + theme(plot.title = element_text(hjust=0.5), plot.subtitle = element_text(hjust=0.5), axis.title.x = element_text(vjust = -2), plot.caption = element_text(vjust = -2)) + scale_color_hue("Cluster")
+```
+
+```{r, eval=FALSE, echo=FALSE, results = 'hide'}
+coordinates$cluster=safeIO$cluster
+
+base= ggplot(coordinates,aes(x=dim1, y=dim2,label=city,color=cluster)) 
+base + geom_text(size=2)
+```
+
+
+```{r, eval=FALSE, results = 'hide', echo=FALSE}
+library(dbscan)
+kNNdistplot(coordinates[,c(1,2)], k = 3) # notice we use the coordinates
+abline(h=30, col = "red", lty=2)
+```
+
+```{r, eval=FALSE, results = 'hide', echo=FALSE}
+library("fpc")
+# Compute DBSCAN using fpc package
+
+db_res <- fpc::dbscan(coordinates[,c(1,2)], eps = 30, MinPts = 3)
+# notice we use the coordinates above
+
+# Plot DBSCAN results
+#devtools::install_github("kassambara/factoextra")
+library("factoextra")
+fviz_cluster(db_res, coordinates[,c(1,2)], stand = FALSE, 
+             geom = 'text',
+             labelsize = 7,
+             outlier.labelsize=4,
+             repel = T,legend='none')
+
+```
+
+## Inferential plots
+
+```{r, echo=FALSE, results = 'hide'}
+model1=lm(PERSONAL~HEALTH+INFRASTRUCTURE,data=safe2[,-1])
+```
+
+```{r, echo=FALSE, results = 'hide'}
+summary(model1)
+```
+
+
+```{r, echo=FALSE, results = 'hide', warning=FALSE, message=FALSE}
+library(dotwhisker)
+library(broom)
+library(dplyr)
+```
+
+
+```{r, echo=FALSE, results = 'hide', error=FALSE, message=FALSE}
+model1_t = tidy(model1) %>%   # we save the result as a tidy object and...
+    mutate(model = "Model 1") # we add a column 'model' with values 'Model 1'
+
+model1_t
+```
+
+#### Plot 1: 
+
+```{r, echo=FALSE, results = 'hide'}
+dwplot(model1_t)
+```
+
+
+```{r, echo=FALSE, results = 'hide'}
+model2=lm(PERSONAL~.,data=safe2[,-1]) # ~. means: all the remaining variables
+summary(model2)
+```
+
+```{r, echo=FALSE, results = 'hide'}
+model2_t <- tidy(model2) %>% mutate(model = "Model 2")
+```
+
+#### Plot 2:
+
+```{r, echo=FALSE}
+# combining
+allModels=rbind(model1_t, model2_t)
+
+#plotting
+dwplot(allModels) 
+```
+
+
+
+#### Final Plot:
+
+```{r, eval=TRUE, error=FALSE, message=FALSE}
+dwplot(allModels) + 
+    geom_vline(xintercept = 0, 
+               colour = "grey60", 
+               linetype = 2) +
+    scale_colour_grey(start = .1, end = .7) + theme_bw() + labs(title="Controlling for digital security increases the effects of health \nand infrastructure on a city's safety rating", x="% Change in Safety Rating", y="Safety Indicators", caption = "Source: Safe Cities Index 2017") + scale_color_manual(values = c("black", "gray80"),
+                     labels = c("No Digital Control", "Digital Control")) + theme(plot.title = element_text(hjust=0.5), axis.title.x = element_text(vjust = -2), plot.caption = element_text(vjust = -2), legend.title = element_blank())
+
+```
+
+
+```{r,echo=FALSE, results = 'hide'}
+cut=median(safe2$PERSONAL)
+safe2$PERSONAL_bi=ifelse(safe2$PERSONAL>cut,
+                         1,0)
+```
+
+
+```{r, echo=FALSE, results = 'hide'}
+logit_PERSONAL = glm(PERSONAL_bi~ .,
+                          data = safe2[,-c(1,5)],
+                          family = "binomial")
+summary(logit_PERSONAL)
+```
+
+
+
+```{r, echo=FALSE, results = 'hide'}
+library(margins)
+margins_logit_PERSONAL = margins(logit_PERSONAL) 
+
+marginalSummary=summary(margins_logit_PERSONAL)
+
+# just to see the results better:
+
+as.data.frame(marginalSummary)
+
+```
+
+```{r, eval=FALSE, echo=FALSE}
+plot(margins_logit_PERSONAL)
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+base = ggplot(data = marginalSummary)
+
+eff1=base +  geom_point(aes(factor, AME))
+eff1
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+eff2= eff1 + geom_errorbar(aes(x = factor, 
+                               ymin = lower, 
+                               ymax = upper))
+eff2
+
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+eff2= eff1 + geom_errorbar(aes(x = factor, ymin = lower, ymax = upper),
+                           colour=c('blue','violet','violet'))
+eff2
+  
+```
+
+```{r, echo=FALSE,  eval=FALSE}
+
+##
+MESSAGE1="increasing on average 1.7% \n the probability of \n being a safe city"
+##
+
+eff3 = eff2 + geom_hline(yintercept = 0) +  theme_minimal() 
+
+eff3 + annotate("text", x = 1.5, 
+                y = 0.02, 
+                label = MESSAGE1) 
+
+```
+
+
+```{r, echo=FALSE,  eval=FALSE}
+cplot(logit_PERSONAL,x="INFRASTRUCTURE") 
+```
+
+
+```{r, echo=FALSE,  eval=FALSE}
+digi=cplot(logit_PERSONAL, "DIGITAL",draw = F)
+head(digi)
+```
+
+
+```{r, echo=FALSE,  eval=FALSE}
+
+base = ggplot(digi, aes(x = xvals)) 
+p1=base +  geom_line(aes(y = yvals)) 
+p1
+
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+p2 = p1+  geom_line(aes(y = upper), linetype = 2) +
+          geom_line(aes(y = lower), linetype = 2) 
+p2
+
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+p1= base + geom_ribbon(aes(ymin = lower, ymax = upper), 
+                       fill = "grey90")
+p2 = p1 + geom_line(aes(y = yvals)) 
+p2
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+p3= p2 + labs(title="Effect of DIGITAL index on PERSONAL index",
+              x= "DIGITAL", y="Predicted Value")
+p3 + theme_bw()
+```
+
